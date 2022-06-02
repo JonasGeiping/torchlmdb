@@ -1,6 +1,6 @@
 import torch
 import torchvision
-from lmdb_dataset import LMDBDataset
+from torchlmdb import LMDBDataset
 
 import logging
 import sys
@@ -17,7 +17,7 @@ root.addHandler(handler)
 dataset = torchvision.datasets.CIFAR10(root="~/data", train=False, transform=torchvision.transforms.ToTensor())
 print(dataset)
 lmdb_dataset = LMDBDataset(dataset, name="cifar_val", force_db_rebuild=True)
-print(dataset)
+print(lmdb_dataset)
 print(torch.all(torch.isclose(lmdb_dataset[0][0], dataset[0][0])))
 
 
@@ -28,12 +28,11 @@ dataset2 = torchvision.datasets.CIFAR10(
 )
 print(dataset2)
 lmdb_dataset2 = LMDBDataset(dataset2, name="cifar_val_dataaug", force_db_rebuild=True)
-print(dataset2)
+print(lmdb_dataset2)
 print(torch.all(torch.isclose(lmdb_dataset2[0][0], dataset2[0][0])))
 
 
 dataset = torchvision.datasets.CIFAR10(root="~/data", train=False, transform=torchvision.transforms.ToTensor())
-print(dataset)
 lmdb_dataset = LMDBDataset(
     dataset,
     name="cifar_val_dataaug",
@@ -42,7 +41,6 @@ lmdb_dataset = LMDBDataset(
         [torchvision.transforms.Resize(64), torchvision.transforms.PILToTensor()]
     ),
 )
-print(dataset)
 print(torch.all(torch.isclose(lmdb_dataset[0][0], dataset2[0][0])))
 
 lmdb_dataset = LMDBDataset(dataset, name="cifar_val", force_db_rebuild=True, temporary_db=False)
