@@ -2,3 +2,7 @@
 include *.py
 global-exclude *.pyc
 global-exclude __pycache__
+
+# added by check-manifest
+include *.md
+include *.py

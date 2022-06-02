@@ -1,4 +1,4 @@
-"""LMBD dataset wrap an existing dataset and "seamlessly" move all data into an LMDB."""
+"""LMBD dataset to wrap an existing dataset and "seamlessly" move all data into an LMDB."""
 
 import os
 
@@ -31,6 +31,7 @@ class LMDB_config:
     """
 
     # Writing:
+    map_size = 1099511627776 * 2  # Linux can grow memory as needed.
     write_frequency = 65536  # how often to flush during database creation
     shuffle_while_writing = False  # Shuffle during DB creation
     db_channels_first = True
@@ -269,11 +270,10 @@ class LMDBDataset(torch.utils.data.Dataset):
         data_transform = copy.deepcopy(dataset.transform)
 
         dataset.transform = db_transform
-
-        if platform.system() == "Linux":
-            map_size = 1099511627776 * 2  # Linux can grow memory as needed.
-        else:
+        if platform.system() != "Linux" and db_cfg.map_size == 1099511627776 * 2:
             raise ValueError("Provide a reasonable default map_size for your operating system.")
+        else:
+            map_size = db_cfg.map_size
         db = lmdb.open(
             database_path,
             subdir=False,
@@ -308,7 +308,7 @@ class LMDBDataset(torch.utils.data.Dataset):
                 for img, label in zip(img_batch, label_batch):
                     # But we have to write sequentially anyway
                     if img.shape != shape:
-                        raise ValueError("All entries need to have to be cropped/resized to have the same shape.")
+                        raise ValueError("All entries need to be cropped/resized to the same shape.")
                     labels.append(label.item())
                     # serialize
                     if db_cfg.db_channels_first:
@@ -320,12 +320,12 @@ class LMDBDataset(torch.utils.data.Dataset):
 
                     if idx % db_cfg.write_frequency == 0:
                         time_taken = (time.time() - timestamp) / db_cfg.write_frequency
-                        estimated_finish = str(datetime.timedelta(seconds=time_taken * len(dataset) * rounds))
+                        estimated_finish = str(datetime.timedelta(seconds=time_taken * len(dataset) * db_cfg.rounds))
                         timestamp = time.time()
 
                         txn.commit()
                         txn = db.begin(write=True)
-                        log.info(f"[{idx} / {len(dataset) * rounds}] Estimated total time: {estimated_finish}")
+                        log.info(f"[{idx} / {len(dataset) * db_cfg.rounds}] Estimated total time: {estimated_finish}")
 
         # finalize dataset
         txn.commit()
